@@ -1,103 +1,285 @@
-import { Redis } from "@upstash/redis";
-import { NextResponse } from "next/server";
+"use client";
+export const dynamic = "force-dynamic";
+import { useState, useMemo, useEffect, useCallback } from "react";
 
-const SEED = {
-  "Fevereiro 2025": {
-    externas: [
-      {id:"f1",evento:"Treino aberto João Fonseca",data:"05/02",mod:"Tênis",rep:"João Barretto",viagem:false,posts:4,nums:655800,prog:"Copa Davis e Geral CazéTV",ao:1,bol:1,yt:0,pauta:""},
-      {id:"f2",evento:"ATP de Buenos Aires",data:"07/02",mod:"Tênis",rep:"João Barretto / Alemzão",viagem:true,posts:21,nums:2300000,prog:"Geral CazéTV",ao:3,bol:0,yt:0,pauta:""},
-      {id:"f3",evento:"Treino + coletiva Patrick Mouratoglou",data:"10/02",mod:"Tênis",rep:"Lucca Bopp",viagem:false,posts:2,nums:245000,prog:"",ao:0,bol:0,yt:0,pauta:""},
-      {id:"f4",evento:"Gravação Ítalo Ferreira",data:"11/02",mod:"Olímpicos",rep:"Crônicas de Jorge",viagem:false,posts:1,nums:376000,prog:"Geral CazéTV",ao:0,bol:1,yt:0,pauta:""},
-      {id:"f5",evento:"Convocação Seleção Feminina",data:"12/02",mod:"Futebol Feminino",rep:"Laura Luzzi",viagem:false,posts:1,nums:357000,prog:"Geral CazéTV",ao:1,bol:0,yt:0,pauta:""},
-      {id:"f6",evento:"Jhon Arias apresentação",data:"13/02",mod:"Futebol Masculino",rep:"Fala Porco",viagem:false,posts:8,nums:3300000,prog:"Transmissão jogo",ao:1,bol:0,yt:0,pauta:""},
-      {id:"f7",evento:"Rio Open",data:"14/02",mod:"Tênis",rep:"João Barretto / Piquet",viagem:false,posts:69,nums:35072800,prog:"Redes/Transmissão",ao:0,bol:0,yt:0,pauta:""},
-      {id:"f8",evento:"Rio Open criadores",data:"14/02",mod:"Tênis",rep:"Alemzão / 2 mista / Demo",viagem:false,posts:7,nums:1047000,prog:"Redes",ao:0,bol:0,yt:0,pauta:""},
-      {id:"f9",evento:"Família Lucas Pinheiro",data:"15/02",mod:"Olímpicos",rep:"Papi Coisa Linda",viagem:false,posts:2,nums:3700000,prog:"Transmissão O. de Inverno",ao:1,bol:0,yt:0,pauta:""},
-      {id:"f10",evento:"Família Lucas Pinheiro",data:"16/02",mod:"Olímpicos",rep:"Papi Coisa Linda",viagem:false,posts:1,nums:256000,prog:"Transmissão O. de Inverno",ao:1,bol:0,yt:0,pauta:""},
-      {id:"f11",evento:"Entrevista Lucas Pinheiro",data:"18/02",mod:"Olímpicos",rep:"Luiza Romar",viagem:true,posts:2,nums:1430000,prog:"Lerigou",ao:0,bol:1,yt:0,pauta:""},
-      {id:"f12",evento:"Neymar Red Bull",data:"20/02",mod:"Copa do Mundo",rep:"Bárbara Coelho",viagem:false,posts:8,nums:11100000,prog:"Transmissão e Geral CazéTV",ao:2,bol:0,yt:128000,pauta:""},
-      {id:"f13",evento:"Tour da Taça SP",data:"23/02",mod:"Copa do Mundo",rep:"Victória Leite",viagem:false,posts:2,nums:395000,prog:"-",ao:1,bol:0,yt:0,pauta:""},
-      {id:"f14",evento:"Tour da Taça RJ",data:"24/02",mod:"Copa do Mundo",rep:"Lucca Bopp",viagem:false,posts:3,nums:550000,prog:"-",ao:1,bol:0,yt:0,pauta:""},
-      {id:"f15",evento:"Rafaela Silva - Instituto Reação",data:"24/02",mod:"Olímpicos",rep:"João Barretto",viagem:false,posts:1,nums:221000,prog:"Geral CazéTV",ao:1,bol:0,yt:0,pauta:""},
-      {id:"f16",evento:"Bruninho e Chico - Final Recopa",data:"26/02",mod:"Futebol Masculino",rep:"Bruninho Maga / Chico Moedas",viagem:false,posts:1,nums:869000,prog:"Noche de Copa",ao:1,bol:0,yt:0,pauta:""},
-      {id:"f17",evento:"Zico - Entrega Doações",data:"26/02",mod:"Futebol Masculino",rep:"Gabriel Simões",viagem:false,posts:1,nums:846000,prog:"Geral CazéTV",ao:1,bol:0,yt:0,pauta:""},
-      {id:"f18",evento:"Tour da Taça Brasília",data:"26/02",mod:"Copa do Mundo",rep:"Day Natale",viagem:true,posts:2,nums:284000,prog:"Transmissão",ao:1,bol:0,yt:0,pauta:""},
-      {id:"f19",evento:"Amistosos Seleção Feminina",data:"27/02",mod:"Futebol Feminino",rep:"Laura Luzzi",viagem:true,posts:16,nums:12140000,prog:"Geral / Fut Inter / Basquete",ao:6,bol:16,yt:0,pauta:""},
-      {id:"f20",evento:"Amistoso Basquete Brasil x Venezuela",data:"27/02",mod:"Olímpicos",rep:"Daniel Gomes e Débora Elisa",viagem:false,posts:3,nums:1700000,prog:"Transmissão Fut Inter",ao:1,bol:0,yt:0,pauta:""},
-      {id:"f21",evento:"Chegada Lindard Corinthians",data:"27/02",mod:"Futebol Masculino",rep:"Victória Leite",viagem:false,posts:1,nums:5200000,prog:"Transmissão",ao:1,bol:0,yt:3700,pauta:""},
-      {id:"f22",evento:"Entrevista Matheus Bidu",data:"27/02",mod:"Futebol Masculino",rep:"Day Natale",viagem:false,posts:0,nums:0,prog:"Transmissão",ao:1,bol:0,yt:0,pauta:""},
-      {id:"f23",evento:"Entrevista Novorizontino",data:"27/02",mod:"Futebol Masculino",rep:"Geovanni Henrique",viagem:false,posts:0,nums:0,prog:"Transmissão",ao:1,bol:0,yt:0,pauta:""}
-    ],
-    jogos: []
-  },
-  "Março 2025": {
-    externas: [
-      {id:"m1",evento:"Conselho técnico Paulistão",data:"02/03",mod:"Futebol Masculino",rep:"Victória Leite",viagem:false,posts:2,nums:6600000,prog:"Geral",ao:0,bol:2,yt:0,pauta:""},
-      {id:"m2",evento:"Brasília Open (Tênis)",data:"02/03",mod:"Tênis",rep:"João Barretto",viagem:false,posts:70,nums:13275894,prog:"Geral / Transmissão Tênis",ao:4,bol:4,yt:0,pauta:""},
-      {id:"m3",evento:"Amistoso Basquete Brasil x Colômbia",data:"02/03",mod:"Olímpicos",rep:"Daniel Gomes & Débora Elisa",viagem:true,posts:3,nums:700000,prog:"Transmissão Esportes Olímpicos",ao:1,bol:0,yt:0,pauta:""},
-      {id:"m4",evento:"Chegada Leonardo Jardim",data:"03/03",mod:"Futebol Masculino",rep:"Bruna Dealtry",viagem:false,posts:3,nums:9300000,prog:"Noche de Copa",ao:0,bol:1,yt:0,pauta:""},
-      {id:"m5",evento:"Coletiva Final do Paulistão",data:"03/03",mod:"Futebol Masculino",rep:"Victória Leite",viagem:false,posts:9,nums:5300000,prog:"Geral",ao:0,bol:1,yt:0,pauta:""},
-      {id:"m6",evento:"Final do Paulistão pré",data:"04/03",mod:"Futebol Masculino",rep:"Geovanni Henrique",viagem:false,posts:3,nums:721600,prog:"Geral",ao:1,bol:2,yt:0,pauta:""},
-      {id:"m7",evento:"Coletiva Renato Gaúcho",data:"04/03",mod:"Futebol Masculino",rep:"Bruna Dealtry",viagem:false,posts:7,nums:9421000,prog:"Geral",ao:1,bol:1,yt:0,pauta:""},
-      {id:"m8",evento:"Coletiva Leonardo Jardim",data:"05/03",mod:"Futebol Masculino",rep:"Bruna Dealtry",viagem:false,posts:11,nums:6714000,prog:"Geral",ao:1,bol:0,yt:0,pauta:""},
-      {id:"m9",evento:"Mercadão com torcida",data:"05/03",mod:"Futebol Masculino",rep:"Luiza Romar",viagem:false,posts:0,nums:0,prog:"Live Especial",ao:1,bol:0,yt:0,pauta:""},
-      {id:"m10",evento:"Treino Corinthians",data:"05/03",mod:"Futebol Masculino",rep:"Day Natale",viagem:false,posts:5,nums:5619500,prog:"Redes",ao:0,bol:0,yt:0,pauta:""},
-      {id:"m11",evento:"Mundial de Skate",data:"06/03",mod:"Olímpicos",rep:"Pedro Cunha",viagem:false,posts:9,nums:14245000,prog:"Redes",ao:0,bol:0,yt:0,pauta:""},
-      {id:"m12",evento:"Treino aberto Novorizontino",data:"06/03",mod:"Futebol Masculino",rep:"Geovanni Henrique",viagem:false,posts:0,nums:0,prog:"Transmissão Fut Inter",ao:1,bol:1,yt:0,pauta:""},
-      {id:"m13",evento:"Final Carioca",data:"08/03",mod:"Futebol Masculino",rep:"Roger Terra",viagem:false,posts:18,nums:18361000,prog:"Redes",ao:1,bol:0,yt:0,pauta:""},
-      {id:"m14",evento:"Indian Wells",data:"10/03",mod:"Tênis",rep:"João Barretto",viagem:true,posts:16,nums:3838400,prog:"Transmissão Esportes Olímpicos / Redes",ao:0,bol:2,yt:0,pauta:""},
-      {id:"m15",evento:"Lançamento Camisa Azul Brasil",data:"12/03",mod:"Copa do Mundo",rep:"Victória Leite / Pedro Cunha",viagem:false,posts:9,nums:7699000,prog:"Geral / Transmissão Esportes Olímpicos",ao:0,bol:3,yt:0,pauta:""},
-      {id:"m16",evento:"Evento PUMA NYC",data:"18/03",mod:"Copa do Mundo",rep:"Bruna Dealtry",viagem:true,posts:8,nums:4501000,prog:"Transmissão Fut Inter / Redes",ao:0,bol:0,yt:0,pauta:""},
-      {id:"m17",evento:"Ligue 1",data:"20/03",mod:"Futebol Masculino",rep:"Victória Leite",viagem:true,posts:8,nums:4779000,prog:"Redes / Transmissão Esportes Olímpicos",ao:0,bol:0,yt:0,pauta:""},
-      {id:"m18",evento:"Evento Basquete Shaquille O'Neal",data:"20/03",mod:"Copa do Mundo",rep:"Rene Ramirez",viagem:false,posts:8,nums:8028000,prog:"Redes",ao:0,bol:0,yt:0,pauta:""},
-      {id:"m19",evento:"Data Fifa",data:"23/03",mod:"Copa do Mundo",rep:"Pedro Cunha / Casimiro",viagem:true,posts:0,nums:0,prog:"",ao:0,bol:0,yt:0,pauta:""},
-      {id:"m20",evento:"Entrevista Deco",data:"25/03",mod:"Copa do Mundo",rep:"Linex",viagem:true,posts:0,nums:0,prog:"",ao:0,bol:0,yt:0,pauta:""}
-    ],
-    jogos: [
-      {id:"j1",evento:"Final Carioca",data:"08/03",mod:"Futebol Masculino",rep:"Roger Terra / VH",viagem:false,posts:18,nums:18361000,prog:"Redes",ao:1,bol:0,yt:0,pauta:""},
-      {id:"j2",evento:"Mirassol x Santos",data:"10/03",mod:"Futebol Masculino",rep:"Bruno Pires",viagem:false,posts:5,nums:4279000,prog:"Redes",ao:0,bol:0,yt:0,pauta:""},
-      {id:"j3",evento:"Corinthians x Coritiba",data:"11/03",mod:"Futebol Masculino",rep:"Ellen",viagem:false,posts:2,nums:1561000,prog:"Redes",ao:0,bol:0,yt:0,pauta:""},
-      {id:"j4",evento:"Flamengo x Cruzeiro",data:"11/03",mod:"Futebol Masculino",rep:"Roger Terra",viagem:false,posts:7,nums:3562000,prog:"Redes",ao:0,bol:0,yt:0,pauta:""},
-      {id:"j5",evento:"Atlético MG x Inter",data:"11/03",mod:"Futebol Masculino",rep:"Saldanha",viagem:false,posts:1,nums:161000,prog:"Redes",ao:0,bol:0,yt:0,pauta:""},
-      {id:"j6",evento:"Bahia x Vitória",data:"11/03",mod:"Futebol Masculino",rep:"Vitor Gomes / Matheus Barbaço",viagem:false,posts:3,nums:1689000,prog:"Redes",ao:0,bol:0,yt:0,pauta:""},
-      {id:"j7",evento:"Vasco x Palmeiras",data:"12/03",mod:"Futebol Masculino",rep:"Jotavê / Fala Porco",viagem:false,posts:4,nums:4157000,prog:"Redes",ao:0,bol:0,yt:0,pauta:""},
-      {id:"j8",evento:"São Paulo x Chapecoense",data:"12/03",mod:"Futebol Masculino",rep:"Igor Betinassi",viagem:false,posts:2,nums:2385000,prog:"Redes",ao:0,bol:0,yt:0,pauta:""},
-      {id:"j9",evento:"Vitória x Atlético-MG",data:"14/03",mod:"Futebol Masculino",rep:"Vitu Vitória",viagem:false,posts:1,nums:1700000,prog:"Redes",ao:0,bol:0,yt:0,pauta:""},
-      {id:"j10",evento:"Botafogo x Flamengo",data:"14/03",mod:"Futebol Masculino",rep:"Roger Terra",viagem:false,posts:3,nums:2359000,prog:"Redes",ao:0,bol:0,yt:0,pauta:""},
-      {id:"j11",evento:"Santos x Corinthians",data:"15/03",mod:"Futebol Masculino",rep:"Ellen / Linex",viagem:false,posts:4,nums:7800000,prog:"Redes",ao:0,bol:0,yt:0,pauta:""},
-      {id:"j12",evento:"Fluminense x Athletico",data:"15/03",mod:"Futebol Masculino",rep:"VH",viagem:false,posts:4,nums:1830000,prog:"Redes",ao:0,bol:0,yt:0,pauta:""},
-      {id:"j13",evento:"Palmeiras x Mirassol",data:"15/03",mod:"Futebol Masculino",rep:"Fala Porco",viagem:false,posts:3,nums:1312000,prog:"Redes",ao:0,bol:0,yt:0,pauta:""},
-      {id:"j14",evento:"Cruzeiro x Vasco da Gama",data:"15/03",mod:"Futebol Masculino",rep:"Carla Pessoa",viagem:false,posts:1,nums:956000,prog:"Redes",ao:0,bol:0,yt:0,pauta:""},
-      {id:"j15",evento:"Red Bull Bragantino x São Paulo",data:"15/03",mod:"Futebol Masculino",rep:"Pedro Cunha",viagem:false,posts:6,nums:3474000,prog:"Redes",ao:0,bol:0,yt:0,pauta:""},
-      {id:"j16",evento:"São Paulo x Palmeiras",data:"21/03",mod:"Futebol Masculino",rep:"Igor Betinassi / Fala Porco",viagem:false,posts:9,nums:16931000,prog:"Redes",ao:0,bol:0,yt:0,pauta:""},
-      {id:"j17",evento:"Corinthians x Flamengo",data:"22/03",mod:"Olímpicos",rep:"Ellen / Luiza Romar",viagem:false,posts:9,nums:5150000,prog:"Redes",ao:0,bol:0,yt:0,pauta:""}
-    ]
-  }
+const MODS = ["Futebol Masculino","Futebol Feminino","Olímpicos","Tênis","Copa do Mundo","Outro"];
+const THEME = {
+  "Futebol Masculino": "#ef4444",
+  "Futebol Feminino":  "#ec4899",
+  "Olímpicos":         "#3b82f6",
+  "Tênis":             "#22c55e",
+  "Copa do Mundo":     "#f59e0b",
+  "Outro":             "#888",
 };
+const fmt = n => n>=1e6?(n/1e6).toFixed(1)+"M":n>=1e3?(n/1e3).toFixed(0)+"K":n?String(n):"—";
+const BLANK = {evento:"",data:"",mod:"Futebol Masculino",rep:"",local:"",posts:0,nums:0,ao:0,bol:0,yt:0,pauta:""};
 
-let redis;
-try { redis = Redis.fromEnv(); } catch { redis = null; }
+export default function Page() {
+  const [data, setData] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [mes, setMes] = useState("");
+  const [search, setSearch] = useState("");
+  const [filterMod, setFilterMod] = useState("Todas");
+  const [expanded, setExpanded] = useState(null);
+  const [modal, setModal] = useState(null);
+  const [form, setForm] = useState(BLANK);
+  const [editId, setEditId] = useState(null);
+  const [novoMes, setNovoMes] = useState(false);
+  const [novoMesNome, setNovoMesNome] = useState("");
 
-export async function GET() {
-  try {
-    if (redis) {
-      let data = await redis.get("cazetv_data");
-      if (!data) {
-        await redis.set("cazetv_data", JSON.stringify(SEED));
-        return NextResponse.json(SEED);
-      }
-      return NextResponse.json(typeof data === "string" ? JSON.parse(data) : data);
-    }
-  } catch {}
-  return NextResponse.json(SEED);
-}
+  useEffect(() => {
+    fetch("/api/data").then(r=>r.json()).then(d=>{
+      setData(d);
+      const keys = Object.keys(d);
+      setMes(keys.at(-1)||"");
+      setLoading(false);
+    }).catch(()=>setLoading(false));
+  },[]);
 
-export async function POST(req) {
-  try {
-    const body = await req.json();
-    if (redis) await redis.set("cazetv_data", JSON.stringify(body));
-    return NextResponse.json({ ok: true });
-  } catch (e) {
-    return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
-  }
+  const persist = useCallback(async(d)=>{
+    setSaving(true);
+    try { await fetch("/api/data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)}); }
+    finally { setSaving(false); }
+  },[]);
+
+  const lista = data[mes] || [];
+
+  const filtered = useMemo(()=>lista.filter(r=>{
+    if(filterMod!=="Todas"&&r.mod!==filterMod) return false;
+    if(search&&!r.evento.toLowerCase().includes(search.toLowerCase())&&!r.rep.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  }),[lista,filterMod,search]);
+
+  const stats = useMemo(()=>({
+    total: lista.length,
+    alcance: lista.reduce((s,r)=>s+r.nums,0),
+    posts: lista.reduce((s,r)=>s+r.posts,0),
+    ao: lista.reduce((s,r)=>s+r.ao,0),
+    bol: lista.reduce((s,r)=>s+r.bol,0),
+    yt: lista.reduce((s,r)=>s+r.yt,0),
+  }),[lista]);
+
+  const updateData = d => { setData(d); persist(d); };
+  const updateLista = l => updateData({...data,[mes]:l});
+  const salvar = ()=>{
+    const e={...form,id:editId||Date.now().toString()};
+    if(editId) updateLista(lista.map(r=>r.id===editId?e:r));
+    else updateLista([...lista,e]);
+    setModal(null);
+  };
+  const deletar = id => updateLista(lista.filter(r=>r.id!==id));
+  const salvarPauta = (id,txt) => updateLista(lista.map(r=>r.id===id?{...r,pauta:txt}:r));
+  const openForm = (row=null)=>{ setEditId(row?.id||null); setForm(row?{...row}:BLANK); setModal("form"); };
+  const openPauta = row => setModal({type:"pauta",row});
+
+  const I = {width:"100%",background:"#0f0f0f",border:"1px solid #2a2a2a",borderRadius:8,padding:"8px 12px",fontSize:13,color:"#eee",outline:"none",boxSizing:"border-box"};
+
+  if(loading) return <div style={{background:"#0f0f0f",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",color:"#555",fontFamily:"system-ui"}}>Carregando...</div>;
+
+  return (
+    <div style={{fontFamily:"'Inter',system-ui,sans-serif",background:"#0f0f0f",minHeight:"100vh",color:"#fff",padding:"20px 16px",maxWidth:1100,margin:"0 auto"}}>
+
+      {/* HEADER */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:10}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#ef4444,#f97316)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>📡</div>
+          <div>
+            <div style={{fontWeight:700,fontSize:18}}>Cazé TV</div>
+            <div style={{fontSize:11,color:"#555",marginTop:1}}>Sistema de Externas{saving&&<span style={{color:"#f59e0b"}}> · salvando...</span>}</div>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          <div style={{display:"flex",gap:3,background:"#1a1a1a",borderRadius:10,padding:3}}>
+            {Object.keys(data).map(m=>(
+              <button key={m} onClick={()=>setMes(m)} style={{background:mes===m?"#ef4444":"transparent",border:"none",borderRadius:7,padding:"5px 12px",cursor:"pointer",fontSize:11,fontWeight:mes===m?600:400,color:mes===m?"#fff":"#888"}}>{m}</button>
+            ))}
+            <button onClick={()=>setNovoMes(true)} style={{background:"transparent",border:"1px dashed #333",borderRadius:7,padding:"5px 10px",cursor:"pointer",fontSize:11,color:"#555"}}>+ Mês</button>
+          </div>
+          <button onClick={()=>openForm()} style={{background:"#ef4444",border:"none",borderRadius:9,padding:"7px 16px",cursor:"pointer",fontSize:12,fontWeight:600,color:"#fff"}}>+ Nova externa</button>
+        </div>
+      </div>
+
+      {/* STATS */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(90px,1fr))",gap:8,marginBottom:20}}>
+        {[
+          {l:"Externas",v:stats.total,c:"#ef4444"},
+          {l:"Alcance",v:fmt(stats.alcance),c:"#3b82f6"},
+          {l:"Posts",v:stats.posts,c:"#f59e0b"},
+          {l:"Ao vivo",v:stats.ao,c:"#ec4899"},
+          {l:"Boletins",v:stats.bol,c:"#14b8a6"},
+          {l:"YouTube",v:fmt(stats.yt),c:"#a855f7"},
+        ].map(s=>(
+          <div key={s.l} style={{background:"#1a1a1a",borderRadius:10,padding:"12px 10px",textAlign:"center",border:"1px solid #222"}}>
+            <div style={{fontSize:20,fontWeight:700,color:s.c,lineHeight:1}}>{s.v}</div>
+            <div style={{fontSize:10,color:"#555",marginTop:4,textTransform:"uppercase",letterSpacing:"0.05em"}}>{s.l}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* FILTROS */}
+      <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar evento ou repórter..." style={{...I,width:220,padding:"6px 12px"}}/>
+        <select value={filterMod} onChange={e=>setFilterMod(e.target.value)} style={{...I,width:"auto",padding:"6px 10px"}}>
+          <option>Todas</option>
+          {MODS.map(m=><option key={m}>{m}</option>)}
+        </select>
+        <span style={{fontSize:12,color:"#555",alignSelf:"center"}}>{filtered.length} registro{filtered.length!==1?"s":""}</span>
+      </div>
+
+      {/* LISTA */}
+      {mes===""||Object.keys(data).length===0?(
+        <div style={{textAlign:"center",padding:"60px 0",color:"#333"}}>
+          <div style={{fontSize:32,marginBottom:12}}>📋</div>
+          <div style={{fontSize:15,marginBottom:8}}>Nenhum mês criado ainda</div>
+          <div style={{fontSize:12,color:"#444"}}>Clique em "+ Mês" para começar</div>
+        </div>
+      ):filtered.length===0?(
+        <div style={{textAlign:"center",padding:"60px 0",color:"#333"}}>
+          <div style={{fontSize:32,marginBottom:12}}>🔍</div>
+          <div style={{fontSize:15,marginBottom:8}}>Nenhum registro encontrado</div>
+          <button onClick={()=>openForm()} style={{background:"#ef4444",border:"none",borderRadius:8,padding:"8px 18px",cursor:"pointer",fontSize:13,color:"#fff",fontWeight:600}}>+ Nova externa</button>
+        </div>
+      ):(
+        <div style={{display:"flex",flexDirection:"column",gap:6}}>
+          {filtered.map(row=>{
+            const c = THEME[row.mod]||"#888";
+            const isExp = expanded===row.id;
+            return (
+              <div key={row.id} style={{background:"#141414",border:`1px solid ${isExp?c+"55":"#1e1e1e"}`,borderRadius:12,overflow:"hidden"}}>
+                <div onClick={()=>setExpanded(isExp?null:row.id)} style={{display:"grid",gridTemplateColumns:"60px 1fr 140px 100px 55px 80px 65px",gap:8,padding:"12px 14px",cursor:"pointer",alignItems:"center"}}>
+                  <div style={{fontSize:11,color:"#555"}}>{row.data||"—"}</div>
+                  <div>
+                    <div style={{fontWeight:600,fontSize:13,display:"flex",alignItems:"center",gap:6,color:"#eee"}}>
+                      <span style={{width:6,height:6,borderRadius:"50%",background:c,display:"inline-block",flexShrink:0}}></span>
+                      {row.evento}
+                      {row.pauta&&<span style={{fontSize:9,background:c+"22",color:c,border:`1px solid ${c}44`,borderRadius:4,padding:"1px 5px",fontWeight:700}}>PAUTA</span>}
+                    </div>
+                    <div style={{fontSize:11,color:"#555",marginTop:2}}>{row.rep}</div>
+                  </div>
+                  <span style={{background:c+"15",color:c,border:`1px solid ${c}33`,borderRadius:20,fontSize:10,padding:"3px 9px",fontWeight:600,whiteSpace:"nowrap",justifySelf:"start"}}>{row.mod}</span>
+                  <div style={{fontSize:11,color:"#555",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{row.local||"—"}</div>
+                  <div style={{fontSize:12,color:"#666",textAlign:"center"}}>{row.posts||"—"}</div>
+                  <div style={{fontSize:12,fontWeight:600,color:row.nums?"#3b82f6":"#444"}}>{fmt(row.nums)}</div>
+                  <div style={{fontSize:11,color:"#555",textAlign:"center"}}>{row.ao?`${row.ao}x ao vivo`:"—"}</div>
+                </div>
+                {isExp&&(
+                  <div style={{borderTop:"1px solid #1e1e1e",padding:"14px 16px",background:"#0f0f0f"}}>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+                      <div>
+                        <div style={{fontSize:10,color:"#444",textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:10,fontWeight:600}}>Detalhes</div>
+                        {[["Repórter",row.rep||"—"],["Local",row.local||"—"],["Posts/Stories",row.posts||"—"],["Ao vivo",row.ao||"—"],["Boletins/Cortes",row.bol||"—"],["YouTube/VOD",fmt(row.yt)],["Alcance total",row.nums?.toLocaleString("pt-BR")||"—"]].map(([k,v])=>(
+                          <div key={k} style={{display:"flex",justifyContent:"space-between",marginBottom:5,fontSize:12}}>
+                            <span style={{color:"#555"}}>{k}</span>
+                            <span style={{color:"#bbb",fontWeight:500}}>{v}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div>
+                        <div style={{fontSize:10,color:"#444",textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:10,fontWeight:600}}>Pauta / Briefing</div>
+                        {row.pauta
+                          ?<div style={{fontSize:12,color:"#aaa",background:"#1a1a1a",borderRadius:8,padding:"10px 12px",lineHeight:1.6,whiteSpace:"pre-wrap",maxHeight:140,overflowY:"auto"}}>{row.pauta}</div>
+                          :<div style={{fontSize:12,color:"#444",fontStyle:"italic"}}>Nenhuma pauta cadastrada.</div>
+                        }
+                        <button onClick={()=>openPauta(row)} style={{marginTop:8,background:"#1a1a1a",border:`1px solid ${c}44`,borderRadius:7,padding:"5px 12px",cursor:"pointer",fontSize:11,color:c,fontWeight:600}}>{row.pauta?"Editar pauta":"Adicionar pauta"}</button>
+                      </div>
+                    </div>
+                    <div style={{display:"flex",gap:6,marginTop:12,justifyContent:"flex-end"}}>
+                      <button onClick={()=>openForm(row)} style={{background:"#1a1a1a",border:"1px solid #2a2a2a",borderRadius:7,padding:"5px 12px",cursor:"pointer",fontSize:11,color:"#aaa"}}>Editar</button>
+                      <button onClick={()=>deletar(row.id)} style={{background:"#1a1a1a",border:"1px solid #ef444433",borderRadius:7,padding:"5px 12px",cursor:"pointer",fontSize:11,color:"#ef4444"}}>Excluir</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* MODAL PAUTA */}
+      {modal?.type==="pauta"&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999}} onClick={()=>setModal(null)}>
+          <div style={{background:"#141414",border:"1px solid #2a2a2a",borderRadius:16,padding:"24px",width:"min(520px,92vw)",boxSizing:"border-box"}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontWeight:700,fontSize:15,color:"#eee",marginBottom:4}}>{modal.row.evento}</div>
+            <div style={{fontSize:11,color:"#555",marginBottom:14}}>{modal.row.data} · {modal.row.rep}</div>
+            <textarea id="pautaArea" defaultValue={modal.row.pauta}
+              placeholder="Descreva a pauta, ângulo editorial, entrevistados, objetivos, links de referência..."
+              style={{...I,minHeight:180,resize:"vertical",lineHeight:1.6}}/>
+            <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:14}}>
+              <button onClick={()=>setModal(null)} style={{background:"#1a1a1a",border:"1px solid #2a2a2a",borderRadius:8,padding:"8px 18px",cursor:"pointer",fontSize:13,color:"#888"}}>Cancelar</button>
+              <button onClick={()=>{salvarPauta(modal.row.id,document.getElementById("pautaArea").value);setModal(null);}} style={{background:"#ef4444",border:"none",borderRadius:8,padding:"8px 18px",cursor:"pointer",fontSize:13,color:"#fff",fontWeight:600}}>Salvar pauta</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL FORM */}
+      {modal==="form"&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999}} onClick={()=>setModal(null)}>
+          <div style={{background:"#141414",border:"1px solid #2a2a2a",borderRadius:16,padding:"24px",width:"min(500px,92vw)",maxHeight:"90vh",overflowY:"auto",boxSizing:"border-box"}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontWeight:700,fontSize:15,color:"#eee",marginBottom:18}}>{editId?"Editar registro":"Nova externa"}</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+              <div style={{gridColumn:"1/-1"}}>
+                <div style={{fontSize:11,color:"#555",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em"}}>Evento</div>
+                <input style={I} value={form.evento} onChange={e=>setForm(f=>({...f,evento:e.target.value}))}/>
+              </div>
+              <div>
+                <div style={{fontSize:11,color:"#555",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em"}}>Data</div>
+                <input style={I} placeholder="dd/mm" value={form.data} onChange={e=>setForm(f=>({...f,data:e.target.value}))}/>
+              </div>
+              <div>
+                <div style={{fontSize:11,color:"#555",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em"}}>Modalidade</div>
+                <select style={I} value={form.mod} onChange={e=>setForm(f=>({...f,mod:e.target.value}))}>
+                  {MODS.map(m=><option key={m}>{m}</option>)}
+                </select>
+              </div>
+              <div style={{gridColumn:"1/-1"}}>
+                <div style={{fontSize:11,color:"#555",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em"}}>Repórter</div>
+                <input style={I} value={form.rep} onChange={e=>setForm(f=>({...f,rep:e.target.value}))}/>
+              </div>
+              <div style={{gridColumn:"1/-1"}}>
+                <div style={{fontSize:11,color:"#555",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em"}}>Local</div>
+                <input style={I} placeholder="Ex: Allianz Parque, São Paulo" value={form.local} onChange={e=>setForm(f=>({...f,local:e.target.value}))}/>
+              </div>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:16}}>
+              {[["Posts","posts"],["Alcance","nums"],["Ao vivo","ao"],["Boletins","bol"],["YouTube","yt"]].map(([l,k])=>(
+                <div key={k}>
+                  <div style={{fontSize:11,color:"#555",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em"}}>{l}</div>
+                  <input type="number" style={I} value={form[k]} onChange={e=>setForm(f=>({...f,[k]:Number(e.target.value)}))}/>
+                </div>
+              ))}
+            </div>
+            <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+              <button onClick={()=>setModal(null)} style={{background:"#1a1a1a",border:"1px solid #2a2a2a",borderRadius:8,padding:"9px 20px",cursor:"pointer",fontSize:13,color:"#888"}}>Cancelar</button>
+              <button onClick={salvar} style={{background:"#ef4444",border:"none",borderRadius:8,padding:"9px 20px",cursor:"pointer",fontSize:13,color:"#fff",fontWeight:700}}>Salvar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL NOVO MÊS */}
+      {novoMes&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999}} onClick={()=>setNovoMes(false)}>
+          <div style={{background:"#141414",border:"1px solid #2a2a2a",borderRadius:16,padding:"24px",width:"min(340px,92vw)",boxSizing:"border-box"}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontWeight:700,fontSize:15,color:"#eee",marginBottom:14}}>Novo mês</div>
+            <div style={{fontSize:11,color:"#555",marginBottom:6,textTransform:"uppercase",letterSpacing:"0.05em"}}>Nome (ex: Abril 2025)</div>
+            <input value={novoMesNome} onChange={e=>setNovoMesNome(e.target.value)} placeholder="Abril 2025" style={I} autoFocus/>
+            <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:14}}>
+              <button onClick={()=>setNovoMes(false)} style={{background:"#1a1a1a",border:"1px solid #2a2a2a",borderRadius:8,padding:"9px 20px",cursor:"pointer",fontSize:13,color:"#888"}}>Cancelar</button>
+              <button onClick={()=>{
+                if(novoMesNome.trim()){
+                  const d={...data,[novoMesNome.trim()]:[]};
+                  updateData(d);
+                  setMes(novoMesNome.trim());
+                  setNovoMesNome("");
+                  setNovoMes(false);
+                }
+              }} style={{background:"#ef4444",border:"none",borderRadius:8,padding:"9px 20px",cursor:"pointer",fontSize:13,color:"#fff",fontWeight:700}}>Criar</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
